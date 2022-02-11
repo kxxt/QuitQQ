@@ -9,12 +9,17 @@ internal class QQBot
     public QQBot(QQConfig config)
     {
         _config = config;
-        _bot = new MiraiBot()
+        _bot = new MiraiBot
         {
             Address = config.Mirai.Address,
             QQ = config.Number,
             VerifyKey = config.Mirai.VerifyKey
         };
+    }
+
+    public Task StartAsync()
+    {
+        return _bot.LaunchAsync();
     }
 }
 

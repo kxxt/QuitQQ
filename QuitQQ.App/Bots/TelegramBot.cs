@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace QuitQQ.App.Bots;
+using Telegram.Bot;
 
-namespace QuitQQ.App.Bots
+internal class TelegramBot
 {
-    internal class TelegramBot
+    private TelegramConfig _config;
+    private TelegramBotClient _bot;
+
+    public TelegramBot(TelegramConfig config)
     {
+        _config = config;
+        _bot = new TelegramBotClient(config.Token);
     }
 }
