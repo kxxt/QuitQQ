@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+	<ItemGroup>
+		<None Include="../config.yaml">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Mirai.Net" Version="2.4.0-Pre2" />
+	  <PackageReference Include="Telegram.Bot" Version="17.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\QuitQQ.Configuration\QuitQQ.Configuration.fsproj" />
+	</ItemGroup>
+</Project>

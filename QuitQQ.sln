@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32127.271
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuitQQ.App", "QuitQQ.App\QuitQQ.App.csproj", "{93DDC6D2-448A-4FDE-ADD2-0B47DE5FB6E7}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "QuitQQ.Configuration", "QuitQQ.Configuration\QuitQQ.Configuration.fsproj", "{C79111D0-2948-48CB-8278-DFB142D83541}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{93DDC6D2-448A-4FDE-ADD2-0B47DE5FB6E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93DDC6D2-448A-4FDE-ADD2-0B47DE5FB6E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93DDC6D2-448A-4FDE-ADD2-0B47DE5FB6E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93DDC6D2-448A-4FDE-ADD2-0B47DE5FB6E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C79111D0-2948-48CB-8278-DFB142D83541}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C79111D0-2948-48CB-8278-DFB142D83541}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C79111D0-2948-48CB-8278-DFB142D83541}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C79111D0-2948-48CB-8278-DFB142D83541}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {418C52CF-A597-4FC1-BD01-E649E092F3C7}
+	EndGlobalSection
+EndGlobal
