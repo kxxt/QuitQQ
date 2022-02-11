@@ -11,7 +11,7 @@ type public QQConfig = AppConfig.QQ_Type
 type public TelegramConfig = AppConfig.Telegram_Type
 
 module public ConfigManager =
-    let public readConfig() = 
+    let public ReadConfig() = 
         let conf = AppConfig()
         conf.Load("config.yaml")
         conf
