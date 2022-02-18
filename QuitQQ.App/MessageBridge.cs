@@ -10,7 +10,6 @@ using Polly.Contrib.WaitAndRetry;
 using Polly.Extensions.Http;
 using QuitQQ.App.Collections;
 using QuitQQ.App.Messaging;
-using QuitQQ.App.Utils;
 using QuitQQ.Configuration;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;

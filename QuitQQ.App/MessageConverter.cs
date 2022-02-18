@@ -1,10 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using QuitQQ.App.Messaging;
 using QuitQQ.App.Utils;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
 namespace QuitQQ.App;
 
