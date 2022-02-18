@@ -134,8 +134,7 @@ internal class MessageBridge : IDisposable
                 }
             }
         }
-        var ex = e as Exception;
-        Console.WriteLine($"Error: {ex?.Message}\n{ex?.StackTrace}");
+        Console.WriteLine($"Error: {e.Message}\n{e.StackTrace}");
     }
 
     #endregion
