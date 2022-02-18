@@ -125,8 +125,8 @@ internal class MessageBridge : IDisposable
                 await Task.Delay(TimeSpan.FromSeconds(are.Parameters.RetryAfter.Value + 1));
                 try
                 {
-                    await _tgBot.SendTextMessageAsync(_eventMessageTarget, $@"TG»úÆ÷ÈË´íÎó£º
-ÇëÇó¹ý¶à£¬{are.Parameters.RetryAfter}s ºóÖØÊÔ¡£");
+                    await _tgBot.SendTextMessageAsync(_eventMessageTarget, $@"TGæœºå™¨äººé”™è¯¯ï¼š
+è¯·æ±‚è¿‡å¤šï¼Œ{are.Parameters.RetryAfter}s åŽé‡è¯•ã€‚");
                 }
                 catch (Exception exn)
                 {
@@ -146,7 +146,7 @@ internal class MessageBridge : IDisposable
     {
         _recentlyContactedFriends.Add(r.Sender.Id);
         await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReply);
-        await _tgBot.SendTextMessageAsync(_eventMessageTarget, $"ÒÑ¸æÖªºÃÓÑ {r.Sender.NickName} (±¸×¢£º{r.Sender.Remark}) ÎÒµÄÆäËûÁªÏµ·½Ê½¡£");
+        await _tgBot.SendTextMessageAsync(_eventMessageTarget, $"å·²å‘ŠçŸ¥å¥½å‹ {r.Sender.NickName} (å¤‡æ³¨ï¼š{r.Sender.Remark}) æˆ‘çš„å…¶ä»–è”ç³»æ–¹å¼ã€‚");
     }
 
     #endregion
@@ -221,12 +221,12 @@ internal class MessageBridge : IDisposable
                 await _tgBot.SendTextMessageAsync(
                     chatIdInstance,
 $@"{text}
-ÕâÌõÏûÏ¢°üº¬ÁËÒ»¸ö¹ý´óµÄÎÄ¼þ£¬ÇëÊÖ¶¯ÏÂÔØ£º
-ÎÄ¼þÃû: {fileName}
-ÏÂÔØÁ´½Ó£º{file.DownloadInfo.Url}
+è¿™æ¡æ¶ˆæ¯åŒ…å«äº†ä¸€ä¸ªè¿‡å¤§çš„æ–‡ä»¶ï¼Œè¯·æ‰‹åŠ¨ä¸‹è½½ï¼š
+æ–‡ä»¶å: {fileName}
+ä¸‹è½½é“¾æŽ¥ï¼š{file.DownloadInfo.Url}
 MD5: {file.DownloadInfo.Md5}
 SHA1: {file.DownloadInfo.Sha1}
-Â·¾¶:  {file.Path}");
+è·¯å¾„:  {file.Path}");
                 return;
             }
             await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
@@ -240,7 +240,7 @@ SHA1: {file.DownloadInfo.Sha1}
         foreach (var (fileId, groupId, fileName, _) in
                  files.Where(f => f.Size <= _maxFileDownloadSize))
         {
-            // ÆäÊµÏÖÔÚ QQ ÎÄ¼þÏûÏ¢Ö»ÄÜÒ»ÌõÒ»Ìõ·¢£¬Õâ¸öÑ­»·Ö´ÐÐ²»µ½
+            // å…¶å®žçŽ°åœ¨ QQ æ–‡ä»¶æ¶ˆæ¯åªèƒ½ä¸€æ¡ä¸€æ¡å‘ï¼Œè¿™ä¸ªå¾ªçŽ¯æ‰§è¡Œä¸åˆ°
             var file = await FileManager.GetFileAsync(groupId, fileId, true);
             await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
             await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName), replyToMessageId: firstMessage.MessageId);
