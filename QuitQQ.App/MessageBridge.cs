@@ -166,7 +166,7 @@ internal class MessageBridge : IDisposable
     private Task SendTelegramMessagesAsync(IMessage msg, string chatId)
     {
         var chatIdInstance = new ChatId(chatId);
-        if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatIdInstance);
+        if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatIdInstance, null);
         return SendForwardedMessagesToTelegramAsync((ForwardedMessages)msg, chatIdInstance);
     }
 
