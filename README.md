@@ -43,6 +43,10 @@ QQ:
 System:
   MaxFileDownloadSize: # Max size for file to be forwarded to telegram, e.g. 2000000000 (in bytes)
   EventMessageTarget: # Telegram chat id to receive event messages
+  EventExcludedChats:
+    - # QQ number to exclude from event messages
+    - # QQ number to exclude from event messages
+    - # QQ number to exclude from event messages
   ReplyToFriendsDelayDays: # Delay before sending another auto reply to your friend
   ReplyToFriends: 【来自 kxxt 的自动回复】 # Message for auto reply, use a blank line to represent a new line.
 
