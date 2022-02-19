@@ -11,9 +11,25 @@ using QuitQQ.App.Utils;
 
 namespace QuitQQ.App;
 
-internal static class EventConverter
+internal class EventConverter
 {
-    public static string? ToPlainText(EventBase e)
+    private HashSet<string> _excluded;
+
+    public EventConverter(IEnumerable<string> excluded)
+    {
+        _excluded = new(excluded);
+    }
+
+    private bool IsExcluded<T>(GroupSettingChangedEventBase<T> e) => _excluded.Contains(e.Group.Id);
+    private bool IsExcluded(GroupMessageRecalledEvent e) => _excluded.Contains(e.Group.Id);
+    private bool IsExcluded(JoinedEvent e) => _excluded.Contains(e.Group.Id);
+    private bool IsExcluded(KickedEvent e) => _excluded.Contains(e.Group.Id);
+    private bool IsExcluded(LeftEvent e) => _excluded.Contains(e.Group.Id);
+    private bool IsExcluded(FriendNickChangedEvent e) => _excluded.Contains(e.Friend.Id);
+    private bool IsExcluded(FriendInputStatusChangedEvent e) => _excluded.Contains(e.Friend.Id);
+    private bool IsExcluded(FriendRecalledEvent e) => _excluded.Contains(e.AuthorId);
+
+    public string? ToPlainText(EventBase e)
     {
         switch (e)
         {
@@ -24,29 +40,47 @@ internal static class EventConverter
             case FriendInputStatusChangedEvent:
                 return null;
             case FriendNickChangedEvent fe:
-                return $"QQ 好友 {fe.Friend.Id} (备注: {fe.Friend.Remark}) 的昵称从 {fe.Origin} 改为了 {fe.New}";
+                return !IsExcluded(fe)
+                    ? $"QQ 好友 {fe.Friend.Id} (备注: {fe.Friend.Remark}) 的昵称从 {fe.Origin} 改为了 {fe.New}"
+                    : null;
             case FriendRecalledEvent fre:
-                return $"{DateTimeExtension.UnixTimeStampToBeijingDateTime(long.Parse(fre.Time))}\nQQ 好友 {fre.Operator} 撤回了一条消息";
+                return !IsExcluded(fre)
+                    ? $"{DateTimeExtension.UnixTimeStampToBeijingDateTime(long.Parse(fre.Time))}\nQQ 好友 {fre.Operator} 撤回了一条消息"
+                    : null;
             case GroupAllowedAnonymousChatEvent gace:
-                return $"QQ 群 {gace.Group.Name} 已{(gace.Current ? "允许" : "禁止")}匿名聊天\n操作人：{gace.Operator.Name}";
+                return !IsExcluded(gace)
+                    ? $"QQ 群 {gace.Group.Name} 已{(gace.Current ? "允许" : "禁止")}匿名聊天\n操作人：{gace.Operator.Name}"
+                    : null;
             case GroupAllowedConfessTalkChanged gacte:
-                return $"QQ 群 {gacte.Group.Name} 已{(gacte.Current ? "允许" : "禁止")}坦白说\n操作人：{gacte.Operator.Name}";
+                return !IsExcluded(gacte)
+                    ? $"QQ 群 {gacte.Group.Name} 已{(gacte.Current ? "允许" : "禁止")}坦白说\n操作人：{gacte.Operator.Name}"
+                    : null;
             case GroupAllowedMemberInviteEvent gamie:
-                return $"QQ 群 {gamie.Group.Name} 已{(gamie.Current ? "允许" : "禁止")}群成员邀请他人入群\n操作人：{gamie.Operator.Name}";
+                return !IsExcluded(gamie)
+                    ? $"QQ 群 {gamie.Group.Name} 已{(gamie.Current ? "允许" : "禁止")}群成员邀请他人入群\n操作人：{gamie.Operator.Name}"
+                    : null;
             case GroupEntranceAnnouncementChangedEvent geace:
-                return $"QQ 群 {geace.Group.Name}入群公告改变\nOld: {geace.Origin}\nNew: {geace.Current}\n操作人：{geace.Operator.Name}";
+                return !IsExcluded(geace)
+                    ? $"QQ 群 {geace.Group.Name}入群公告改变\nOld: {geace.Origin}\nNew: {geace.Current}\n操作人：{geace.Operator.Name}"
+                    : null;
             case GroupMessageRecalledEvent gmre:
-                return $"QQ 群 {gmre.Group.Name} {gmre.Operator.Name} 撤回了一条消息 {gmre.MessageId}";
+                return !IsExcluded(gmre)
+                    ? $"QQ 群 {gmre.Group.Name} {gmre.Operator.Name} 撤回了一条消息 {gmre.MessageId}"
+                    : null;
             case GroupMutedAllEvent gmae:
-                return $"QQ 群 {gmae.Group.Name} 已{(gmae.Current ? "开启" : "关闭")}全员禁言\n操作人：{gmae.Operator.Name}";
+                return !IsExcluded(gmae)
+                    ? $"QQ 群 {gmae.Group.Name} 已{(gmae.Current ? "开启" : "关闭")}全员禁言\n操作人：{gmae.Operator.Name}"
+                    : null;
             case GroupNameChangedEvent gnce:
-                return $"QQ 群 {gnce.Group.Id} 的名称已从 {gnce.Origin} 改变为 {gnce.Current}\n操作人: {gnce.Operator.Name}";
+                return !IsExcluded(gnce)
+                    ? $"QQ 群 {gnce.Group.Id} 的名称已从 {gnce.Origin} 改变为 {gnce.Current}\n操作人: {gnce.Operator.Name}"
+                    : null;
             case JoinedEvent je:
-                return $"Bot 加入群 {je.Group.Name} ({je.Group.Id})";
+                return !IsExcluded(je) ? $"Bot 加入群 {je.Group.Name} ({je.Group.Id})" : null;
             case KickedEvent ke:
-                return $"Bot 被踢出群 {ke.Group.Name} ({ke.Group.Id})";
+                return !IsExcluded(ke) ? $"Bot 被踢出群 {ke.Group.Name} ({ke.Group.Id})" : null;
             case LeftEvent le:
-                return $"Bot 退出群聊 {le.Group.Name} ({le.Group.Id})";
+                return !IsExcluded(le) ? $"Bot 退出群聊 {le.Group.Name} ({le.Group.Id})" : null;
             case MemberCardChangedEvent memberCardChangedEvent:
                 return null;
             case MemberHonorChangedEvent memberHonorChangedEvent:
@@ -82,12 +116,13 @@ internal static class EventConverter
             case NewFriendRequestedEvent nfre:
                 return $"[QQ 好友申请]\n{nfre.FromId}\n{nfre.Nick}\n{nfre.Message}\n来源群组: {nfre.GroupId}";
             case NewInvitationRequestedEvent nire:
-                RequestManager.HandleNewInvitationRequestedAsync(nire, NewInvitationRequestHandlers.Approve, "[自动回复]好友添加成功");
+                RequestManager.HandleNewInvitationRequestedAsync(nire, NewInvitationRequestHandlers.Approve,
+                    "[自动回复]好友添加成功");
                 return $"[入群申请(已同意)]\n邀请人: {nire.Nick} ({nire.FromId})\n群: \n{nire.GroupId}\n信息: {nire.Message}";
             case NewMemberRequestedEvent nmre:
                 return null;
             case RequestedEventBase requestedEventBase:
-                return null;    
+                return null;
             case OnlineEvent:
                 return "[Mirai Bot]\n机器人登陆成功";
             case OfflineEvent:
@@ -99,4 +134,3 @@ internal static class EventConverter
         }
     }
 }
-

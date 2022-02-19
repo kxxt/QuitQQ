@@ -27,19 +27,24 @@ internal class MessageBridge : IDisposable
     private readonly HttpClient _httpClient = new();
     private readonly long _maxFileDownloadSize;
     private readonly string _savedReply;
+
     /// <summary>
     /// A TimeoutHashSet for QQ friends that the bot talked to recently.
     /// </summary>
     private readonly TimeoutHashSet<string> _recentlyContactedFriends;
 
+    private readonly EventConverter _eventConverter;
+
     private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
     {
-        var delay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(1.6), retryCount: 6);
+        var delay = Backoff.DecorrelatedJitterBackoffV2(medianFirstRetryDelay: TimeSpan.FromSeconds(1.6),
+            retryCount: 6);
         return HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.TooManyRequests)
             .WaitAndRetryAsync(delay);
     }
+
     public MessageBridge(AppConfig config)
     {
         _qqBot = new MiraiBot
@@ -71,6 +76,7 @@ internal class MessageBridge : IDisposable
         _tgBot = scope.ServiceProvider.GetService<ITelegramBotClient>()!;
 
         _forwardingConfigs = config.Forwardings;
+        _eventConverter = new(config.System.EventExcludedChats);
         _maxFileDownloadSize = long.Parse(config.System.MaxFileDownloadSize);
         _eventMessageTarget = new(config.System.EventMessageTarget);
     }
@@ -112,7 +118,7 @@ internal class MessageBridge : IDisposable
 
     private async void ProcessUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        await ProcessException(sender, (Exception)e.ExceptionObject);
+        await ProcessException(sender, (Exception) e.ExceptionObject);
     }
 
     private async Task ProcessException(object? sender, Exception e)
@@ -133,6 +139,7 @@ internal class MessageBridge : IDisposable
                 }
             }
         }
+
         Console.WriteLine($"Error: {e.Message}\n{e.StackTrace}");
     }
 
@@ -144,7 +151,8 @@ internal class MessageBridge : IDisposable
     {
         _recentlyContactedFriends.Add(r.Sender.Id);
         await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReply);
-        await _tgBot.SendTextMessageAsync(_eventMessageTarget, $"已告知好友 {r.Sender.NickName} (备注：{r.Sender.Remark}) 我的其他联系方式。");
+        await _tgBot.SendTextMessageAsync(_eventMessageTarget,
+            $"已告知好友 {r.Sender.NickName} (备注：{r.Sender.Remark}) 我的其他联系方式。");
     }
 
     #endregion
@@ -153,7 +161,7 @@ internal class MessageBridge : IDisposable
 
     private async void SendEventMessageToTelegramAsync(EventBase e)
     {
-        var converted = EventConverter.ToPlainText(e);
+        var converted = _eventConverter.ToPlainText(e);
         if (converted != null)
             await _tgBot.SendTextMessageAsync(_eventMessageTarget, converted);
     }
@@ -166,13 +174,13 @@ internal class MessageBridge : IDisposable
     {
         var chatIdInstance = new ChatId(chatId);
         if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatIdInstance, null);
-        return SendForwardedMessagesToTelegramAsync((ForwardedMessages)msg, chatIdInstance);
+        return SendForwardedMessagesToTelegramAsync((ForwardedMessages) msg, chatIdInstance);
     }
 
     private Task SendTelegramMessagesAsync(IMessage msg, ChatId chatId, int? replyTo)
     {
         if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatId, replyTo);
-        return SendForwardedMessagesToTelegramAsync((ForwardedMessages)msg, chatId);
+        return SendForwardedMessagesToTelegramAsync((ForwardedMessages) msg, chatId);
     }
 
     private Task SendForwardedMessagesToTelegramAsync(ForwardedMessages msgs, string chatId)
@@ -198,7 +206,8 @@ internal class MessageBridge : IDisposable
         if (images.Count == 1)
         {
             // One photo with caption
-            firstMessage = await _tgBot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text, replyToMessageId: replyTo);
+            firstMessage = await _tgBot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text,
+                replyToMessageId: replyTo);
         }
         else if (images.Count > 1)
         {
@@ -218,7 +227,7 @@ internal class MessageBridge : IDisposable
             {
                 await _tgBot.SendTextMessageAsync(
                     chatIdInstance,
-$@"{text}
+                    $@"{text}
 这条消息包含了一个过大的文件，请手动下载：
 文件名: {fileName}
 下载链接：{file.DownloadInfo.Url}
@@ -227,21 +236,25 @@ SHA1: {file.DownloadInfo.Sha1}
 路径:  {file.Path}");
                 return;
             }
+
             await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName), caption: text, replyToMessageId: replyTo);
+            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName), caption: text,
+                replyToMessageId: replyTo);
             return;
         }
         else
         {
             firstMessage = await _tgBot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo);
         }
+
         foreach (var (fileId, groupId, fileName, _) in
                  files.Where(f => f.Size <= _maxFileDownloadSize))
         {
             // 其实现在 QQ 文件消息只能一条一条发，这个循环执行不到
             var file = await FileManager.GetFileAsync(groupId, fileId, true);
             await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName), replyToMessageId: firstMessage.MessageId);
+            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName),
+                replyToMessageId: firstMessage.MessageId);
         }
     }
 
@@ -252,10 +265,10 @@ SHA1: {file.DownloadInfo.Sha1}
     }
 
     #endregion
+
     public void Dispose()
     {
         _qqBot.Dispose();
         _httpClient.Dispose();
     }
 }
-
