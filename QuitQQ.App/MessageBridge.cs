@@ -118,7 +118,7 @@ internal class MessageBridge : IDisposable
 
     private async void ProcessUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        await ProcessException(sender, (Exception) e.ExceptionObject);
+        await ProcessException(sender, (Exception)e.ExceptionObject);
     }
 
     private async Task ProcessException(object? sender, Exception e)
@@ -151,8 +151,10 @@ internal class MessageBridge : IDisposable
     {
         _recentlyContactedFriends.Add(r.Sender.Id);
         await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReply);
-        await _tgBot.SendTextMessageAsync(_eventMessageTarget,
-            $"已告知好友 {r.Sender.NickName} (备注：{r.Sender.Remark}) 我的其他联系方式。");
+        await _tgBot.SendMessageWithErrorHandlingAsync(
+            bot => bot.SendTextMessageAsync(_eventMessageTarget,
+            $"已告知好友 {r.Sender.NickName} (备注：{r.Sender.Remark}) 我的其他联系方式。")
+        );
     }
 
     #endregion
@@ -163,7 +165,9 @@ internal class MessageBridge : IDisposable
     {
         var converted = _eventConverter.ToPlainText(e);
         if (converted != null)
-            await _tgBot.SendTextMessageAsync(_eventMessageTarget, converted);
+            await _tgBot.SendMessageWithErrorHandlingAsync(
+                bot => bot.SendTextMessageAsync(_eventMessageTarget, converted)
+            );
     }
 
     #endregion
@@ -174,13 +178,13 @@ internal class MessageBridge : IDisposable
     {
         var chatIdInstance = new ChatId(chatId);
         if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatIdInstance, null);
-        return SendForwardedMessagesToTelegramAsync((ForwardedMessages) msg, chatIdInstance);
+        return SendForwardedMessagesToTelegramAsync((ForwardedMessages)msg, chatIdInstance);
     }
 
     private Task SendTelegramMessagesAsync(IMessage msg, ChatId chatId, int? replyTo)
     {
         if (msg is CompositeMessage cMsg) return SendCompositeMessageToTelegramAsync(cMsg, chatId, replyTo);
-        return SendForwardedMessagesToTelegramAsync((ForwardedMessages) msg, chatId);
+        return SendForwardedMessagesToTelegramAsync((ForwardedMessages)msg, chatId);
     }
 
     private Task SendForwardedMessagesToTelegramAsync(ForwardedMessages msgs, string chatId)
@@ -191,7 +195,12 @@ internal class MessageBridge : IDisposable
 
     private async Task SendForwardedMessagesToTelegramAsync(ForwardedMessages msgs, ChatId chatIdInstance)
     {
-        var firstMessage = await _tgBot.SendTextMessageAsync(chatIdInstance, msgs.Text);
+        var firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+            bot => bot.SendTextMessageAsync(chatIdInstance, msgs.Text));
+        if (firstMessage == null)
+        {
+            return;
+        }
         foreach (var msg in msgs.Messages)
         {
             await SendTelegramMessagesAsync(msg, chatIdInstance, firstMessage.MessageId);
@@ -202,21 +211,27 @@ internal class MessageBridge : IDisposable
     {
         var (text, images, files) = cMsg;
 
-        Message firstMessage; // The message to be replied to.
+        Message? firstMessage; // The message to be replied to.
         if (images.Count == 1)
         {
             // One photo with caption
-            firstMessage = await _tgBot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text,
-                replyToMessageId: replyTo);
+            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                bot => bot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text,
+                replyToMessageId: replyTo)
+                );
         }
         else if (images.Count > 1)
         {
             // A text message with another album message
-            firstMessage = await _tgBot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo);
-            await _tgBot.SendMediaGroupAsync(chatIdInstance,
-                from url in images select new InputMediaPhoto(url),
-                replyToMessageId: firstMessage.MessageId
-            );
+            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
+                );
+            if (firstMessage != null)
+                await _tgBot.SendMessageWithErrorHandlingAsync(
+                    bot => bot.SendMediaGroupAsync(chatIdInstance,
+                    from url in images select new InputMediaPhoto(url),
+                    replyToMessageId: firstMessage.MessageId
+                ));
         }
         else if (files.Count == 1)
         {
@@ -225,7 +240,8 @@ internal class MessageBridge : IDisposable
             var file = await FileManager.GetFileAsync(groupId, fileId, true);
             if (fileSize > _maxFileDownloadSize)
             {
-                await _tgBot.SendTextMessageAsync(
+                await _tgBot.SendMessageWithErrorHandlingAsync(
+                    bot => bot.SendTextMessageAsync(
                     chatIdInstance,
                     $@"{text}
 这条消息包含了一个过大的文件，请手动下载：
@@ -233,29 +249,36 @@ internal class MessageBridge : IDisposable
 下载链接：{file.DownloadInfo.Url}
 MD5: {file.DownloadInfo.Md5}
 SHA1: {file.DownloadInfo.Sha1}
-路径:  {file.Path}");
+路径:  {file.Path}")
+                );
                 return;
             }
 
             await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName), caption: text,
-                replyToMessageId: replyTo);
+            await _tgBot.SendMessageWithErrorHandlingAsync(
+                bot => bot.SendDocumentAsync(chatIdInstance,
+                    new InputOnlineFile(stream, fileName),
+                    caption: text, replyToMessageId: replyTo));
             return;
         }
         else
         {
-            firstMessage = await _tgBot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo);
+            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
+            );
         }
-
-        foreach (var (fileId, groupId, fileName, _) in
-                 files.Where(f => f.Size <= _maxFileDownloadSize))
-        {
-            // 其实现在 QQ 文件消息只能一条一条发，这个循环执行不到
-            var file = await FileManager.GetFileAsync(groupId, fileId, true);
-            await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-            await _tgBot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName),
-                replyToMessageId: firstMessage.MessageId);
-        }
+        if (firstMessage != null)
+            foreach (var (fileId, groupId, fileName, _) in
+                     files.Where(f => f.Size <= _maxFileDownloadSize))
+            {
+                // 其实现在 QQ 文件消息只能一条一条发，这个循环执行不到
+                var file = await FileManager.GetFileAsync(groupId, fileId, true);
+                await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
+                await _tgBot.SendMessageWithErrorHandlingAsync(
+                    bot => bot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName),
+                    replyToMessageId: firstMessage.MessageId)
+                );
+            }
     }
 
     private Task SendCompositeMessageToTelegramAsync(CompositeMessage cMsg, string chatId)
