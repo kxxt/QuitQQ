@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Mirai.Net.Data.Exceptions;
 using QuitQQ.App.Messaging;
 using QuitQQ.App.Utils;
 
@@ -57,7 +58,15 @@ internal static class MessageConverter
     {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine($"[{r.Name}]");
-        sb.AppendLine($"{r.Sender.Name} ({r.Sender.Profile.NickName})");
+        try
+        {
+            sb.AppendLine($"{r.Sender.Name} ({r.Sender.Profile.NickName})");
+        }
+        catch // Failure may arise when getting user profile.
+        {
+            sb.AppendLine($"{r.Sender.Name} ({r.Sender.Id})");
+        }
+
         string prefix = sb.ToString();
         IMessage result = ReduceMessageChain(r.MessageChain, r.Id);
         result.Text = prefix + result.Text;
@@ -95,7 +104,7 @@ internal static class MessageConverter
             sb.AppendLine($"时间：{DateTimeExtension.UnixTimeStampToBeijingDateTime(long.Parse(src.Time))}");
             msgs.Dequeue();
         }
-        else 
+        else
         {
             if (groupId != null) // 转发的消息没有 SourceMessage 和 groupId
                 parsingStatus.AppendLine("Parser: 警告！首条消息非 SourceMessage!");
