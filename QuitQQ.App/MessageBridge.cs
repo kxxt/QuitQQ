@@ -8,6 +8,7 @@ using Polly.Contrib.WaitAndRetry;
 using Polly.Extensions.Http;
 using QuitQQ.App.Collections;
 using QuitQQ.App.Messaging;
+using QuitQQ.App.Utils;
 using QuitQQ.Configuration;
 using System.Net;
 using System.Reactive.Linq;
@@ -237,28 +238,35 @@ internal class MessageBridge : IDisposable
         {
             // One file message
             var (fileId, groupId, fileName, fileSize) = files.First();
-            var file = await FileManager.GetFileAsync(groupId, fileId, true);
-            if (fileSize > _maxFileDownloadSize)
+            try
             {
-                await _tgBot.SendMessageWithErrorHandlingAsync(
-                    bot => bot.SendTextMessageAsync(
-                    chatIdInstance,
-                    $@"{text}
+                var file = await FileManager.GetFileAsync(groupId, fileId, true);
+                if (fileSize > _maxFileDownloadSize)
+                {
+                    await _tgBot.SendMessageWithErrorHandlingAsync(
+                        bot => bot.SendTextMessageAsync(
+                            chatIdInstance,
+                            $@"{text}
 这条消息包含了一个过大的文件，请手动下载：
 文件名: {fileName}
 下载链接：{file.DownloadInfo.Url}
 MD5: {file.DownloadInfo.Md5}
 SHA1: {file.DownloadInfo.Sha1}
 路径:  {file.Path}")
-                );
-                return;
+                    );
+                    return;
+                }
+                await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
+                await _tgBot.SendMessageWithErrorHandlingAsync(
+                    bot => bot.SendDocumentAsync(chatIdInstance,
+                        new InputOnlineFile(stream, fileName),
+                        caption: text, replyToMessageId: replyTo));
             }
-
-            await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-            await _tgBot.SendMessageWithErrorHandlingAsync(
-                bot => bot.SendDocumentAsync(chatIdInstance,
-                    new InputOnlineFile(stream, fileName),
-                    caption: text, replyToMessageId: replyTo));
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.FormatException());
+                await SendFileFailureMessageToTelegramAsync(chatIdInstance, fileName, fileId, fileSize, groupId, text);
+            }
             return;
         }
         else
@@ -268,17 +276,40 @@ SHA1: {file.DownloadInfo.Sha1}
             );
         }
         if (firstMessage != null)
-            foreach (var (fileId, groupId, fileName, _) in
+            foreach (var (fileId, groupId, fileName, fileSize) in
                      files.Where(f => f.Size <= _maxFileDownloadSize))
             {
                 // 其实现在 QQ 文件消息只能一条一条发，这个循环执行不到
-                var file = await FileManager.GetFileAsync(groupId, fileId, true);
-                await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-                await _tgBot.SendMessageWithErrorHandlingAsync(
-                    bot => bot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName),
-                    replyToMessageId: firstMessage.MessageId)
-                );
+                try
+                {
+                    var file = await FileManager.GetFileAsync(groupId, fileId, true);
+                    await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
+                    await _tgBot.SendMessageWithErrorHandlingAsync(
+                        bot => bot.SendDocumentAsync(chatIdInstance, new InputOnlineFile(stream, fileName),
+                            replyToMessageId: firstMessage.MessageId)
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.FormatException());
+                    await SendFileFailureMessageToTelegramAsync(chatIdInstance, fileName, fileId, fileSize, groupId);
+                }
+
             }
+    }
+
+    private Task SendFileFailureMessageToTelegramAsync(ChatId chatIdInstance, string fileName, string fileId, long fileSize, string groupId, string text = "")
+    {
+        return _tgBot.SendMessageWithErrorHandlingAsync(
+            bot => bot.SendTextMessageAsync(
+                chatIdInstance,
+                $@"{text}
+有一个文件转发失败！
+文件名: {fileName}
+群组： {groupId}
+文件ID: {fileId}
+文件大小：{fileSize}
+"));
     }
 
     private Task SendCompositeMessageToTelegramAsync(CompositeMessage cMsg, string chatId)
