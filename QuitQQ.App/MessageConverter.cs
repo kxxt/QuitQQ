@@ -1,7 +1,6 @@
-﻿using System.Text;
-using Mirai.Net.Data.Exceptions;
-using QuitQQ.App.Messaging;
+﻿using QuitQQ.App.Messaging;
 using QuitQQ.App.Utils;
+using System.Text;
 
 namespace QuitQQ.App;
 

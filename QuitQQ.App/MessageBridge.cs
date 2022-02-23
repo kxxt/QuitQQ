@@ -1,5 +1,3 @@
-using System.Net;
-using System.Reactive.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Mirai.Net.Data.Events;
 using Mirai.Net.Data.Messages.Receivers;
@@ -11,6 +9,8 @@ using Polly.Extensions.Http;
 using QuitQQ.App.Collections;
 using QuitQQ.App.Messaging;
 using QuitQQ.Configuration;
+using System.Net;
+using System.Reactive.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;

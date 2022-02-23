@@ -1,9 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using QuitQQ.App.Utils;
+﻿using QuitQQ.App.Utils;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
 
 namespace QuitQQ.App.Messaging;
 
