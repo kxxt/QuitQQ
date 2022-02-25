@@ -14,7 +14,8 @@ Data:
     .ToKeyValuePairs()
     .Select((k, v) => $"    {k}: {v}")
     .Aggregate(
-        (x, y) => x + '\n' + y
+        string.Empty,
+        (x, y) => string.Join('\n', x, y)
     )}
 Source: {ex.Source}
 HResult: {ex.HResult}
@@ -24,7 +25,10 @@ InnerException: {ex.InnerException?.FormatException(indent + 4) ?? "<None>" }
 -- END Exception Log <{ex.GetType()}> {DateTime.Now} --"
             .Split()
             .Select(x => indentStr + x)
-            .Aggregate((x, y) => x + '\n' + y);
+            .Aggregate(
+                string.Empty,
+                (x, y) => string.Join('\n', x, y)
+            );
     }
 }
 
