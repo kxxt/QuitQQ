@@ -50,6 +50,8 @@ internal static class MessageConverter
                 return $"QuoteMessage:\ngroup: {q.GroupId}\ntarget: {q.TargetId}\nsender: {q.SenderId}";
             case MarketFaceMessage m:
                 return $"【商城表情:{m.Name}】";
+            case MiraiCodeMessage mc:
+                return $"[MiraiCode:{mc.Code}]";
             default:
                 return "Unknown Message";
         }
@@ -165,7 +167,17 @@ internal static class MessageConverter
     }
 
     private static readonly HashSet<Messages> TextConvertibleMessageTypes =
-        new() { Messages.Plain, Messages.Poke, Messages.Dice, Messages.AtAll, Messages.Face, Messages.At, Messages.MarketFace };
+        new()
+        {
+            Messages.Plain,
+            Messages.Poke,
+            Messages.Dice,
+            Messages.AtAll,
+            Messages.Face,
+            Messages.At,
+            Messages.MarketFace,
+            Messages.MiraiCode
+        };
 
 
     private static bool CanBeConvertToTextMessage(Messages t)
@@ -184,6 +196,7 @@ internal static class MessageConverter
             AtMessage a => $"@{a.Target}",
             FaceMessage f => $"[表情:{f.Name}]",
             MarketFaceMessage m => $"[商城表情:{m.Name}]",
+            MiraiCodeMessage mc => $"[MiraiCode:{mc.Code}]",
             _ => throw new ArgumentException("msg not convertible to text.", nameof(msg))
         };
     }
