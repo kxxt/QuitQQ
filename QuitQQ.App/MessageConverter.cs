@@ -1,4 +1,6 @@
-﻿using QuitQQ.App.Messaging;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using QuitQQ.App.Messaging;
 using QuitQQ.App.Utils;
 using System.Text;
 
@@ -176,13 +178,55 @@ internal static class MessageConverter
             Messages.Face,
             Messages.At,
             Messages.MarketFace,
-            Messages.MiraiCode
+            Messages.MiraiCode,
+            Messages.App
         };
 
 
     private static bool CanBeConvertToTextMessage(Messages t)
     {
         return TextConvertibleMessageTypes.Contains(t);
+    }
+
+    private static string GetDescFromAppMessageDetail(JToken detail) => detail["desc"]!.Value<string>()!;
+    private static string GetUrlFromAppMessageDetail(JToken detail) => detail["qqdocurl"]!.Value<string>()!;
+
+    private static string? GetHostFromAppMessageDetail(JToken detail)
+    {
+        if (detail["host"] is { } host)
+            return $"来源：{host["nick"]!.Value<string>()} ({host["uin"]})";
+        return null;
+    }
+    private static string ConvertAppMessage(AppMessage am)
+    {
+        var sb = new StringBuilder();
+        try
+        {
+            var json = JsonConvert.DeserializeObject<JObject>(am.Content)!;
+            if (json["prompt"]?.Type == JTokenType.String)
+                sb.AppendLine(json["prompt"]!.Value<string>());
+            var detail = json["meta"]?["detail_1"]!;
+            var title = detail["title"]!.Value<string>()!;
+            switch (title)
+            {
+                case "哔哩哔哩":
+                    sb.AppendLine(GetDescFromAppMessageDetail(detail));
+                    sb.AppendLine(GetUrlFromAppMessageDetail(detail));
+                    sb.AppendLine(GetHostFromAppMessageDetail(detail));
+                    return sb.ToString();
+                case "腾讯文档":
+                    sb.AppendLine(GetDescFromAppMessageDetail(detail));
+                    sb.AppendLine(GetUrlFromAppMessageDetail(detail));
+                    sb.AppendLine(GetHostFromAppMessageDetail(detail));
+                    return sb.ToString();
+                default:
+                    return am.Content;
+            }
+        }
+        catch
+        {
+            return am.Content;
+        }
     }
 
     private static string ConvertToTextMessage(MessageBase msg)
@@ -197,6 +241,7 @@ internal static class MessageConverter
             FaceMessage f => $"[表情:{f.Name}]",
             MarketFaceMessage m => $"[商城表情:{m.Name}]",
             MiraiCodeMessage mc => $"[MiraiCode:{mc.Code}]",
+            AppMessage am => ConvertAppMessage(am),
             _ => throw new ArgumentException("msg not convertible to text.", nameof(msg))
         };
     }
