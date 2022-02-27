@@ -17,7 +17,7 @@ internal static class MessageConverter
             case PlainMessage pm:
                 return pm.Text;
             case AppMessage am:
-                return $"AppMessage: {am.App}";
+                return $"AppMessage: {am.Content}";
             case FlashImageMessage flash:
                 return $"FlashImage: {flash.Path}\n{flash.Url}\n{flash.ImageId}";
             case ImageMessage image:
