@@ -240,7 +240,7 @@ internal class MessageBridge : IDisposable
             var (fileId, groupId, fileName, fileSize) = files.First();
             try
             {
-                var file = await FileManager.GetFileAsync(groupId, fileId, true);
+                var file = await FileManagerExtension.GetFileInfoWithRetriesAsync(groupId, fileId);
                 if (fileSize > _maxFileDownloadSize)
                 {
                     await _tgBot.SendMessageWithErrorHandlingAsync(
