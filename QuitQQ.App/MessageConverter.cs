@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Mirai.Net.Sessions.Http.Managers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using QuitQQ.App.Messaging;
 using QuitQQ.App.Utils;
@@ -29,7 +30,7 @@ internal static class MessageConverter
             case AtAllMessage:
                 return "@全体成员";
             case AtMessage at:
-                return $"AtMessage:\ndisplay:{at.Display}target: \n{at.Target}";
+                return $"AtMessage:\ntarget: \n{at.Target}";
             case DiceMessage dice:
                 return $"Dice: {dice.Value}";
             case FaceMessage face:
@@ -59,13 +60,14 @@ internal static class MessageConverter
         }
     }
 
-    public static IMessage ToTelegramMessages(GroupMessageReceiver r)
+    public static async Task<IMessage> ToTelegramMessages(GroupMessageReceiver r)
     {
         StringBuilder sb = new StringBuilder();
-        sb.AppendLine($"[{r.Name}]");
+        sb.AppendLine($"[{r.GroupName}]");
         try
         {
-            sb.AppendLine($"{r.Sender.Name} ({r.Sender.Profile.NickName})");
+            var profile = await r.Sender.GetMemberProfileAsync();
+            sb.AppendLine($"{r.Sender.Name} ({profile.NickName})");
         }
         catch // Failure may arise when getting user profile.
         {
@@ -73,7 +75,7 @@ internal static class MessageConverter
         }
 
         string prefix = sb.ToString();
-        IMessage result = ReduceMessageChain(r.MessageChain, r.Id);
+        IMessage result = ReduceMessageChain(r.MessageChain, r.GroupId);
         result.Text = prefix + result.Text;
         return result;
     }

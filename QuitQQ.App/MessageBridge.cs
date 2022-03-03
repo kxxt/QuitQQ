@@ -94,10 +94,10 @@ internal class MessageBridge : IDisposable
         {
             _qqBot.MessageReceived
                 .OfType<GroupMessageReceiver>()
-                .Where(r => config.Sources.Contains(r.Id))
+                .Where(r => config.Sources.Contains(r.GroupId))
                 .Subscribe(async r =>
                 {
-                    var tgMsgs = MessageConverter.ToTelegramMessages(r);
+                    var tgMsgs = await MessageConverter.ToTelegramMessages(r);
                     await SendTelegramMessagesAsync(tgMsgs, config.Target); // TODO
                 });
         }
