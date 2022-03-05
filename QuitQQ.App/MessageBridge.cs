@@ -213,67 +213,75 @@ internal class MessageBridge : IDisposable
         var (text, images, files) = cMsg;
 
         Message? firstMessage; // The message to be replied to.
-        if (images.Count == 1)
+        switch (images.Count)
         {
-            // One photo with caption
-            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
-                bot => bot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text,
-                replyToMessageId: replyTo)
+            case 1:
+                // One photo with caption
+                firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                    bot => bot.SendPhotoAsync(chatIdInstance, new InputOnlineFile(images.First()), text,
+                        replyToMessageId: replyTo)
                 );
-        }
-        else if (images.Count > 1)
-        {
-            // A text message with another album message
-            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
-                bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
-                );
-            if (firstMessage != null)
-                await _tgBot.SendMessageWithErrorHandlingAsync(
-                    bot => bot.SendMediaGroupAsync(chatIdInstance,
-                    from url in images select new InputMediaPhoto(url),
-                    replyToMessageId: firstMessage.MessageId
-                ));
-        }
-        else if (files.Count == 1)
-        {
-            // One file message
-            var (fileId, groupId, fileName, fileSize) = files.First();
-            try
-            {
-                var file = await FileManagerExtension.GetFileInfoWithRetriesAsync(groupId, fileId);
-                if (fileSize > _maxFileDownloadSize)
+                break;
+            case > 1:
                 {
-                    await _tgBot.SendMessageWithErrorHandlingAsync(
-                        bot => bot.SendTextMessageAsync(
-                            chatIdInstance,
-                            $@"{text}
+                    // A text message with another album message
+                    firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                        bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
+                    );
+                    if (firstMessage != null)
+                        await _tgBot.SendMessageWithErrorHandlingAsync(
+                            bot => bot.SendMediaGroupAsync(chatIdInstance,
+                                from url in images select new InputMediaPhoto(url),
+                                replyToMessageId: firstMessage.MessageId
+                            ));
+                    break;
+                }
+            default:
+                {
+                    if (files.Count == 1)
+                    {
+                        // One file message
+                        var (fileId, groupId, fileName, fileSize) = files.First();
+                        try
+                        {
+                            var file = await FileManagerExtension.GetFileInfoWithRetriesAsync(groupId, fileId);
+                            if (fileSize > _maxFileDownloadSize)
+                            {
+                                await _tgBot.SendMessageWithErrorHandlingAsync(
+                                    bot => bot.SendTextMessageAsync(
+                                        chatIdInstance,
+                                        $@"{text}
 这条消息包含了一个过大的文件，请手动下载：
 文件名: {fileName}
 下载链接：{file.DownloadInfo.Url}
 MD5: {file.DownloadInfo.Md5}
 SHA1: {file.DownloadInfo.Sha1}
 路径:  {file.Path}")
-                    );
-                    return;
+                                );
+                                return;
+                            }
+                            await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
+                            await _tgBot.SendMessageWithErrorHandlingAsync(
+                                bot => bot.SendDocumentAsync(chatIdInstance,
+                                    new InputOnlineFile(stream, fileName),
+                                    caption: text, replyToMessageId: replyTo));
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.FormatException());
+                            await SendFileFailureMessageToTelegramAsync(chatIdInstance, fileName, fileId, fileSize, groupId, text);
+                        }
+                        return;
+                    }
+                    else
+                    {
+                        firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
+                            bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
+                        );
+                    }
+
+                    break;
                 }
-                await using var stream = await _httpClient.GetStreamAsync(file.DownloadInfo.Url);
-                await _tgBot.SendMessageWithErrorHandlingAsync(
-                    bot => bot.SendDocumentAsync(chatIdInstance,
-                        new InputOnlineFile(stream, fileName),
-                        caption: text, replyToMessageId: replyTo));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.FormatException());
-                await SendFileFailureMessageToTelegramAsync(chatIdInstance, fileName, fileId, fileSize, groupId, text);
-            }
-            return;
-        }
-        else
-        {
-            firstMessage = await _tgBot.SendMessageWithErrorHandlingAsync(
-                bot => bot.SendTextMessageAsync(chatIdInstance, text, replyToMessageId: replyTo)
-            );
         }
         if (firstMessage != null)
             foreach (var (fileId, groupId, fileName, fileSize) in

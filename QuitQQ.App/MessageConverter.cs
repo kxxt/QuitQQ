@@ -148,22 +148,23 @@ internal static class MessageConverter
             {
                 sb.Append(ConvertToTextMessage(msg));
             }
-            else if (msg is ImageMessage im) // FlashImageMessage is also ImageMessage
-            {
-                result.Images.Add(im.Url);
-                sb.Append($"[图片{++picNum}]");
-            }
-            else if (msg is FileMessage fm)
-            {
-                if (groupId != null)
-                    result.Files.Add(new Messaging.FileMessage(fm.FileId, groupId, fm.Name, fm.Size));
-                else
-                    parsingStatus.AppendLine($"来自未知群组的文件(无法转发到电报)：\n文件名：{fm.Name}\n文件ID:{fm.FileId}\n文件大小{fm.Size}");
-            }
-            else
-            {
-                sb.AppendLine(ToRawMessage(msg));
-            }
+            else switch (msg)
+                {
+                    // FlashImageMessage is also ImageMessage
+                    case ImageMessage im:
+                        result.Images.Add(im.Url);
+                        sb.Append($"[图片{++picNum}]");
+                        break;
+                    case FileMessage fm when groupId != null:
+                        result.Files.Add(new Messaging.FileMessage(fm.FileId, groupId, fm.Name, fm.Size));
+                        break;
+                    case FileMessage fm:
+                        parsingStatus.AppendLine($"来自未知群组的文件(无法转发到电报)：\n文件名：{fm.Name}\n文件ID:{fm.FileId}\n文件大小{fm.Size}");
+                        break;
+                    default:
+                        sb.AppendLine(ToRawMessage(msg));
+                        break;
+                }
         }
 
         result.Text = sb.ToString() + '\n' + parsingStatus;
