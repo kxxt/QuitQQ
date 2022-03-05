@@ -208,23 +208,34 @@ internal static class MessageConverter
             var json = JsonConvert.DeserializeObject<JObject>(am.Content)!;
             if (json["prompt"]?.Type == JTokenType.String)
                 sb.AppendLine(json["prompt"]!.Value<string>());
-            var detail = json["meta"]?["detail_1"]!;
-            var title = detail["title"]!.Value<string>()!;
-            switch (title)
+            var detail = json["meta"]?["detail_1"];
+            if (detail != null)
             {
-                case "哔哩哔哩":
-                    sb.AppendLine(GetDescFromAppMessageDetail(detail));
-                    sb.AppendLine(GetUrlFromAppMessageDetail(detail));
-                    sb.AppendLine(GetHostFromAppMessageDetail(detail));
-                    return sb.ToString();
-                case "腾讯文档":
-                    sb.AppendLine(GetDescFromAppMessageDetail(detail));
-                    sb.AppendLine(GetUrlFromAppMessageDetail(detail));
-                    sb.AppendLine(GetHostFromAppMessageDetail(detail));
-                    return sb.ToString();
-                default:
-                    return am.Content;
+                var title = detail["title"]!.Value<string>()!;
+                switch (title)
+                {
+                    case "哔哩哔哩":
+                        sb.AppendLine(GetDescFromAppMessageDetail(detail));
+                        sb.AppendLine(GetUrlFromAppMessageDetail(detail));
+                        sb.AppendLine(GetHostFromAppMessageDetail(detail));
+                        return sb.ToString();
+                    case "腾讯文档":
+                        sb.AppendLine(GetDescFromAppMessageDetail(detail));
+                        sb.AppendLine(GetUrlFromAppMessageDetail(detail));
+                        sb.AppendLine(GetHostFromAppMessageDetail(detail));
+                        return sb.ToString();
+                    default:
+                        return am.Content;
+                }
             }
+
+            // WeiXin
+            var news = json["meta"]?["news"]!;
+            var uin = news["uin"]!.Value<long>()!;
+            var url = news["jumpUrl"]!.Value<string>()!;
+            sb.AppendLine($"uin: {uin}");
+            sb.AppendLine(url);
+            return sb.ToString();
         }
         catch
         {
