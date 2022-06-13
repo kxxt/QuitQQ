@@ -27,7 +27,8 @@ internal class MessageBridge : IDisposable
     private readonly ChatId _eventMessageTarget;
     private readonly HttpClient _httpClient = new();
     private readonly long _maxFileDownloadSize;
-    private readonly string _savedReply;
+    private readonly string _savedReplyToFriends;
+    private readonly string _savedReplyToStrangers;
 
     /// <summary>
     /// A TimeoutHashSet for QQ friends that the bot talked to recently.
@@ -55,7 +56,8 @@ internal class MessageBridge : IDisposable
             VerifyKey = config.QQ.Mirai.VerifyKey
         };
 
-        _savedReply = config.System.ReplyToFriends;
+        _savedReplyToFriends = config.System.ReplyToFriends;
+        _savedReplyToStrangers = config.System.ReplyToStrangers;
         _recentlyContactedFriends = new(
             TimeSpan.FromDays(double.Parse(config.System.ReplyToFriendsDelayDays)));
 
@@ -107,6 +109,10 @@ internal class MessageBridge : IDisposable
             .OfType<FriendMessageReceiver>()
             .Where(r => !_recentlyContactedFriends.Contains(r.Sender.Id))
             .Subscribe(ProcessQQFriendMessage);
+        _qqBot.MessageReceived
+            .OfType<StrangerMessageReceiver>()
+            .Where(r => !_recentlyContactedFriends.Contains(r.StrangerId))
+            .Subscribe(ProcessQQStrangerMessage);
     }
 
     #region Exception Handling
@@ -146,15 +152,25 @@ internal class MessageBridge : IDisposable
 
     #endregion
 
-    #region Process QQ Friend Message
+    #region Process QQ PM
 
     private async void ProcessQQFriendMessage(FriendMessageReceiver r)
     {
         _recentlyContactedFriends.Add(r.Sender.Id);
-        await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReply);
+        await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReplyToFriends);
         await _tgBot.SendMessageWithErrorHandlingAsync(
             bot => bot.SendTextMessageAsync(_eventMessageTarget,
             $"已告知好友 {r.Sender.NickName} (备注：{r.Sender.Remark}) 我的其他联系方式。")
+        );
+    }
+
+    private async void ProcessQQStrangerMessage(StrangerMessageReceiver r)
+    {
+        _recentlyContactedFriends.Add(r.Sender.Id);
+        await MessageManager.SendFriendMessageAsync(r.Sender.Id, _savedReplyToStrangers);
+        await _tgBot.SendMessageWithErrorHandlingAsync(
+            bot => bot.SendTextMessageAsync(_eventMessageTarget,
+            $"已告知陌生人 {r.Sender.NickName} (陌生人Name：{r.StrangerName}, Id: {r.StrangerId}) 我的其他联系方式。")
         );
     }
 
