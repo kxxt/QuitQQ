@@ -67,7 +67,7 @@ internal class EventConverter
                     Console.WriteLine(ex.FormatException());
                     Console.WriteLine(gamie.ToString());
                 }
-                break;
+                return null;
 
             case GroupEntranceAnnouncementChangedEvent geace:
                 return !IsExcluded(geace)
