@@ -56,9 +56,19 @@ internal class EventConverter
                     ? $"QQ 群 {gacte.Group.Name} 已{(gacte.Current ? "允许" : "禁止")}坦白说\n操作人：{gacte.Operator.Name}"
                     : null;
             case GroupAllowedMemberInviteEvent gamie:
-                return !IsExcluded(gamie)
+                try
+                {
+                    return !IsExcluded(gamie)
                     ? $"QQ 群 {gamie.Group.Name} 已{(gamie.Current ? "允许" : "禁止")}群成员邀请他人入群\n操作人：{gamie.Operator.Name}"
                     : null;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.FormatException());
+                    Console.WriteLine(gamie.ToString());
+                }
+                break;
+
             case GroupEntranceAnnouncementChangedEvent geace:
                 return !IsExcluded(geace)
                     ? $"QQ 群 {geace.Group.Name}入群公告改变\nOld: {geace.Origin}\nNew: {geace.Current}\n操作人：{geace.Operator.Name}"
